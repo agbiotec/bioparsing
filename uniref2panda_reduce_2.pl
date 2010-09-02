@@ -14,33 +14,26 @@
 use strict;
 use warnings;
 
-my ( $unirefID, $unirefHEAD, $unirefHEADkey, $giIDkey, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $emblID, $giID, $taxonID, $key, $value, $uniref_entry_flag, $id_mapping_flag, $taxon_entry_flag);
+my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $emblID, $giID, $taxonID, $key, $value, $uniref_entry_flag);
 
 $uniref_entry_flag = 0;
-$id_mapping_flag = 0;
-$unirefHEAD = '';
-$sequence = ''; 
-$giID = '';
-$emblID = '';
 
 
     while (<STDIN>) {
 
 
 
-        if ($uniref_entry_flag == 1 and $id_mapping_flag ==1 and $taxon_entry_flag ==1 ) {
+        if ($uniref_entry_flag == 1) {
             
 	    $uniref_entry_flag = 0;
-	    $id_mapping_flag = 0;
-	    $taxon_entry_flag =0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc $unirefID";
 	       }
 
             else {
-	        $newHeader = ">$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc $unirefID";
 	       }
 
 	    print "$newHeader\n$sequence\n";
@@ -53,34 +46,16 @@ $emblID = '';
 
 
 
-
         chomp $_;
 	($key,$value) = split(/\t/, $_);
-#        $key =~ s/"-1"//;
-#        $key =~ s/"-2"//;
-#        $key =~ s/"-3"//;
- 
-
-#	if ($_=~ /.*@@@.*/) {
-#            ($unirefHEAD,$sequence) =  split(/@@@/,$value);
-#	    $unirefHEADkey = $key;
-#	}
-#
-#	elsif ($_=~ /.*---.*/) {
-#            ($giID,$emblID) = split(/---/,$value);
-#        }
-#	elsif ($_=~ /.*XXX.*/) {
-#            ($taxonID) = split(/XXX/,$value);
-#        }
 
       
        
         # If the line is a uniref header
         #if ( length($unirefHEAD) > 1 and $uniref_entry_flag == 0 ) {
-         if ($key =~ s/"-1"//) {
+         if ($key =~ s/-1//) {
 
-            ($unirefHEAD,$sequence) =  split(/@@@/,$value);
-	    $unirefHEADkey = $key;
+            ($unirefHEAD,$sequence) =  split(/---/,$value);
 
             # Use regex to acquire the following:
             $unirefHEAD =~ m/>([A-Za-z0-9]+)_([A-Za-z0-9-]+) (.+) n=\d+ Tax=(.+) RepID.*/;
@@ -95,35 +70,53 @@ $emblID = '';
                     $unirefID = $isoformData[0];
                 }
 																				            
-            $uniref_entry_flag = 1;
 
             }
 
 
 
         # line is a uniref id mapping header
-         elsif ($key =~ s/"-2"// and $key = $unirefHEADkey) {
+         elsif ($key =~ s/-2//) {
         #elsif ( length($giID) > 1 and $key == $unirefHEADkey ) {
 
              ($giID,$emblID) = split(/---/,$value);
-             $giIDkey = $key;
 
 	     # Intialize the remaining tags. Set wgp, cg, and closed to 1 if the EMBL ID starts with any of appropriate letters.
 	     $misc = "(exp=0; wgp=0; cg=0; closed=0; pub=1; rf_status =;)";
              $misc = "(exp=0; wgp=1; cg=1; closed=1; pub=1; rf_status =;)" if ($emblID =~ m/^(AL|BX|CR|CT|CU).*/);
 
-             $id_mapping_flag = 1;
 
 	    }
 
-         elsif ($key =~ s/"-3"// and $key = $unirefHEADkey and $key = $giIDkey) {
+         elsif ($key =~ s/-3// ) {
 
-		 $taxonID = split(/XXX/,$value);
-		 $taxon_entry_flag = 1;
+		 $taxonID = $value;
+		 $uniref_entry_flag = 1;
 
 	    }
-
-
 
             
-    
+   } 
+
+
+
+        #need that for after processing the last trio of records 
+   
+        if ($uniref_entry_flag == 1)  {
+            
+	    $uniref_entry_flag = 0;
+
+            #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
+            if ($isoform eq "") {
+	        $newHeader = ">$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	       }
+
+            else {
+	        $newHeader = ">$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	       }
+
+	    print "$newHeader\n$sequence\n";
+
+            #$unirefHEAD = '';
+            #$giID = '';
+}

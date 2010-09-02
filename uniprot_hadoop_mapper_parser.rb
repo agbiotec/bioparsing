@@ -2,6 +2,7 @@
 
 accession = String.new
 lineage = String.new
+taxon = String.new
 
 STDIN.each_line do |line|
 
@@ -21,10 +22,19 @@ STDIN.each_line do |line|
     end
 
 
+    if line[0..1].eql? "OX"
+	taxon = "TAXON\t" + line.split(/   /).at(1).chop! + "---"
+	taxon = taxon.gsub ";", ""
+	taxon = taxon.gsub "NCBI_TaxID=", ""
+    end
+
+
     if line[0..1].eql? "//"
-	puts "#{accession}\t#{lineage}"
+	kingdom = lineage.split(/,/)    
+	puts "#{accession}\t#{taxon}#{kingdom[0]}"
 	accession = ''    
 	lineage = ''
+	taxon = ''
     end
 
 end
