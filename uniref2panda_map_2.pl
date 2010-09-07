@@ -60,8 +60,9 @@ $taxon_mapping_flag = 0;
         }
 
 
-        chomp $_;
-        @line_split = split(/\t/,$_);
+        $line = $_;
+        chomp $line;
+        @line_split = split(/\t/,$line);
 
         
         # If the line is a uniref header

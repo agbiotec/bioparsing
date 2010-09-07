@@ -29,11 +29,11 @@ $uniref_entry_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc $unirefID";
+	        $newHeader = ">$unirefID|$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
             else {
-	        $newHeader = ">$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc $unirefID";
+	        $newHeader = ">$unirefID|$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
 	    print "$newHeader\n$sequence\n";
