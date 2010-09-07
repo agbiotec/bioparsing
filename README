@@ -1,0 +1,75 @@
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping.dat.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz
+
+gunzip *
+
+
+
+1). First Hadoop job to get the taxon ids and lineages
+
+--Preparation and data input:
+cat uniprot_sprot.dat >> uniprot_trembl.dat (will be used for parsing lineages and taxon ids)
+/opt/hadoop/bin/hadoop fs -put uniprot_trembl.dat /data/kkrampis/uniprot/uniprot_trembl_sprot.dat (former is local dir, latter is hadoop dir)
+
+--Run the job:
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniprot/uniprot_trembl_sprot.dat -output /data/kkrampis/uniprot/uniprot_taxon_parsed_NCBI_taxid.dat.2  -file /home/kkrampis/devel/BioDoop/uniprot_hadoop_mapper_parser.rb  -mapper /home/kkrampis/devel/BioDoop/uniprot_hadoop_mapper_parser.rb -numReduceTasks 128
+( 4mins, 36sec )
+
+--Export data to local file system:
+/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniprot/uniprot_taxon_parsed_NCBI_taxid.dat.2 /usr/local/scratch/kkrampis (former is hadoop dir, latter is local dir)
+
+
+
+
+2). Prepare the file with Uniref sequences and taxon/lineages for the second Hadoop job
+
+-- Make a copy of the original Uniref100 file, where we will be adding the EMBL/GI ids and taxon/lineages, before the final parsing with Hadoop
+ cp uniref100.fasta uniref100.fasta.joined
+
+-- Add EMBL/GI ids
+ grep "EMBL\|GI" idmapping.dat | grep -v CDS >> uniref100.fasta.joined
+
+-- Add taxon/lineages
+cd /usr/local/scratch/kkrampis/uniprot_taxon_parsed_NCBI_taxid.dat.2
+(notice the 128 part-***** files which are the Hadoop splits -numReduceTasks when processing taxon/lineages in parallel)
+cat part-* >> uniref100.fasta.joined
+
+-- How many unique kingdoms we have ?
+cut -d '-' -f 4 part-00* | sort -u
+
+
+
+ 
+3). Second Hadoop job
+
+--SE/UniRef_to_Panda/ Copy prepared file into Hadoop filesystem
+/opt/hadoop/bin/hadoop fs -put /usr/local/scratch/kkrampis/uniref/uniref100.fasta.joined /data/kkrampis/uniprot2panda/
+
+--Run the job
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniprot2panda/uniref100.fasta.joined -output /data/kkrampis/uniprot2panda/uniref2panda.with.kingdoms -file /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl  -mapper /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl -file /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl  -reducer /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl -numReduceTasks 128
+(approximately 1 hr)
+
+
+-- Copy output to local filesystem and concatenate file parts
+/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniprot2panda/uniref2panda.with.kingdoms /usr/local/scratch/kkrampis
+cd /usr/local/scratch/kkrampis/uniref2panda.with.kingdoms
+cat part-* >> uniref100_PANDA_Hadoop.fasta
+cp uniref100_PANDA_Hadoop.fasta /usr/local/projects/PANDA/PANDA_uniref/all/
+
+
+-- Split by Kingdom
+grep -A 1 "---Archaea" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Archaea//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea_Hadoop.fasta
+grep -A 1 "---Bacteria" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Bacteria//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria_Hadoop.fasta
+grep -A 1 "---Eukaryota" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Eukaryota//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota_Hadoop.fasta
+grep -A 1 "---Viruses" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Viruses//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses_Hadoop.fasta
+grep -A 1 "---noKingdom" uniref100_PANDA_Hadoop.fasta | sed -e 's/---noKingdom//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom_Hadoop.fasta
+
+grep -A 1 "---unclassifiedsequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/---unclassifiedsequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
+grep -A 1 "---unclassified" uniref100_PANDA_Hadoop.fasta | sed -e 's/---unclassified//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
+grep -A 1 "---othersequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/---othersequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
+
+
+-- Format DB
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea_Hadoop.fasta -o T
