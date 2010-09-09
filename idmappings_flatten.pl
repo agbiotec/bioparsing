@@ -11,7 +11,7 @@ while(<INPUT>)
 }
 while ( ($key, $value) = each %records_hash)
 {
-	print OUTPUT "$key$value\n";
+	print "$key$value\n";
 }
 close INPUT;
 close OUTPUT;

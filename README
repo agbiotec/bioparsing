@@ -25,11 +25,15 @@ cat uniprot_sprot.dat >> uniprot_trembl.dat (will be used for parsing lineages a
 
 2). Prepare the file with Uniref sequences and taxon/lineages for the second Hadoop job
 
--- Make a copy of the original Uniref100 file, where we will be adding the EMBL/GI ids and taxon/lineages, before the final parsing with Hadoop
- cp uniref100.fasta uniref100.fasta.joined
+-- Join sequence and header lines to avoid split of a multi-line sequence across the Hadoop file chunks (separation of sequence and header
+   is take care by the code).
 
--- Add EMBL/GI ids
- grep "EMBL\|GI" idmapping.dat | grep -v CDS >> uniref100.fasta.joined
+  awk '/^>/&&NR>1{print "";}{ printf "%s",/^>/ ? $0"\t":$0 }' uniref100.fasta > uniref100.fasta.joined
+
+
+-- Join cross-reference lines 
+
+  perl idmappings_flatten.pl idmappings.dat >> uniref100.fasta.joined
 
 -- Add taxon/lineages
 cd /usr/local/scratch/kkrampis/uniprot_taxon_parsed_NCBI_taxid.dat.2

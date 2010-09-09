@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 
-my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $emblID, $giID, $taxonID, $key, $value, $uniref_entry_flag);
+my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag);
 
 $uniref_entry_flag = 0;
 
@@ -29,11 +29,11 @@ $uniref_entry_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">$unirefID|$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
             else {
-	        $newHeader = ">$unirefID|$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
 	    print "$newHeader\n$sequence\n";
@@ -79,12 +79,15 @@ $uniref_entry_flag = 0;
          elsif ($key =~ s/-2//) {
         #elsif ( length($giID) > 1 and $key == $unirefHEADkey ) {
 
-             ($giID,$emblID) = split(/---/,$value);
 
 	     # Intialize the remaining tags. Set wgp, cg, and closed to 1 if the EMBL ID starts with any of appropriate letters.
 	     $misc = "(exp=0; wgp=0; cg=0; closed=0; pub=1; rf_status =;)";
-             $misc = "(exp=0; wgp=1; cg=1; closed=1; pub=1; rf_status =;)" if ($emblID =~ m/^(AL|BX|CR|CT|CU).*/);
 
+             if ($value =~ s/---//) {
+                 $misc = "(exp=0; wgp=1; cg=1; closed=1; pub=1; rf_status =;)";
+             }
+
+	     $crossIDs = $value;
 
 	    }
 
@@ -108,11 +111,11 @@ $uniref_entry_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">$giID|$emblID $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">Uniref100|$unirefID\^|\^$crossIDs $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
 	       }
 
             else {
-	        $newHeader = ">$giID|$emblID|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">Uniref100|$unirefID\^|\^$crossIDs|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
 	       }
 
 	    print "$newHeader\n$sequence\n";
