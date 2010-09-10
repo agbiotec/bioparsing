@@ -33,12 +33,27 @@ cat uniprot_sprot.dat >> uniprot_trembl.dat (will be used for parsing lineages a
 
 -- Join cross-reference lines 
 
-  perl idmappings_flatten.pl idmappings.dat >> uniref100.fasta.joined
+  perl idmappings_flatten.pl idmapping.dat >> idmapping.single_line.dat
 
 -- Add taxon/lineages
 cd /usr/local/scratch/kkrampis/uniprot_taxon_parsed_NCBI_taxid.dat.2
 (notice the 128 part-***** files which are the Hadoop splits -numReduceTasks when processing taxon/lineages in parallel)
-cat part-* >> uniref100.fasta.joined
+cat part-* >> taxonID_mapping.dat
+
+-- Use only the cross-reference id mappings , and taxon mappings that are present in the clusters of Uniref100 (otherwise Hadoop gets confused by the extra keys)
+
+grep \> uniref100.fasta | cut -f 1 -d " " | sed -e 's/>UniRef100_//' | sed -e 's/^/grep /' | sed -e 's/$/ idmapping.single_line.dat >> uniref100.idmappings.dat/' > uniref100.idmappings.sh &
+
+grep \> uniref100.fasta | cut -f 1 -d " " | sed -e 's/>UniRef100_//' | sed -e 's/^/grep /' | sed -e 's/$/ taxonID_mapping.dat >> uniref100.taxonID_mapping.dat/' > uniref100.taxonID_mapping.sh &
+
+./uniref100.idmappings.sh
+./uniref100.taxonID_mapping.sh
+
+
+-- Fix the file that will be loaded on Hadoop
+cat uniref100.idmappings.dat >> uniref100.fasta.joined
+cat uniref100.taxonID_mapping.dat >> uniref100.fasta.joined
+
 
 -- How many unique kingdoms we have ?
 cut -d '-' -f 4 part-00* | sort -u
