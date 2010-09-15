@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 
-my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag);
+my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag, $members_taxons, $cluster_ids);
 
 $uniref_entry_flag = 0;
 
@@ -29,11 +29,11 @@ $uniref_entry_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
             else {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
 	       }
 
 	    print "$newHeader\n$sequence\n";
@@ -87,17 +87,25 @@ $uniref_entry_flag = 0;
                  $misc = "(exp=0; wgp=1; cg=1; closed=1; pub=1; rf_status =;)";
              }
 
+             $taxonID = $value =~ s/^|^Taxon|([0-9]+))//;
 	     $crossIDs = $value;
 
 	    }
 
          elsif ($key =~ s/-3// ) {
 
-		 $taxonID = $value;
-		 $uniref_entry_flag = 1;
+		 $kingdom = $value;
+	    }
+            
+
+         elsif ($key =~ s/-4// ) {
+
+		 ($members_taxons, $cluster_ids) = split(/\t/,$value);
+		 $members_taxons =~ s/^/Cluster_Taxons\|/;
+		 $cluster_ids =~ s/^/Cluster_ids\|/;
+	         $uniref_entry_flag = 1;
 
 	    }
-
             
    } 
 
@@ -111,11 +119,11 @@ $uniref_entry_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID\^|\^$crossIDs $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
-	       }
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	       
 
             else {
-	        $newHeader = ">Uniref100|$unirefID\^|\^$crossIDs|$isoform $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
 	       }
 
 	    print "$newHeader\n$sequence\n";

@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 my (%records_hash,@record_fields,$uniref_id,$uniref_map_record);
 open INPUT, "<$ARGV[0]";
-open OUTPUT, ">$ARGV[1]";
 while(<INPUT>)
 {
 	chomp;
@@ -14,4 +13,3 @@ while ( ($key, $value) = each %records_hash)
 	print "$key$value\n";
 }
 close INPUT;
-close OUTPUT;

@@ -9,8 +9,9 @@ STDIN.each_line do |line|
 
     lineArray = line.split(/\t/)
     accession = lineArray.at(0)
-    uniref100 = lineArray.at(8)
-    taxon = lineArray.at(13)
-    puts "#{uniref100}\t#{accession}\t#{taxon}"
+    uniref100 = lineArray.at(1)
+    uniref100.gsub "UniRef100_", ""
+    taxon = lineArray.at(2)
+    puts "#{uniref100}\tCLUSTERS#{accession}\t#{taxon}"
 
 end

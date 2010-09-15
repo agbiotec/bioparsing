@@ -1,16 +1,15 @@
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz
-wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping.dat.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping_selected.tab.gz
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz
 
 gunzip *
 
+cat uniprot_sprot.dat uniprot_trembl.dat >> uniprot_sprot_trembl.dat (will be used for parsing lineages and taxon ids)
 
+1). 
 
-1). First Hadoop job to get the taxon ids and lineages
-
---Preparation and data input:
-cat uniprot_sprot.dat >> uniprot_trembl.dat (will be used for parsing lineages and taxon ids)
+2). First Hadoop job to get the taxon ids and lineages
 /opt/hadoop/bin/hadoop fs -put uniprot_trembl.dat /data/kkrampis/uniprot/uniprot_trembl_sprot.dat (former is local dir, latter is hadoop dir)
 
 --Run the job:

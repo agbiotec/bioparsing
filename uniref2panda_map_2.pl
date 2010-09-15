@@ -14,18 +14,22 @@
 use strict;
 use warnings;
 
-my ($line, @line_split, $unirefID, $unirefHEAD, $unirefID_to_emit, $unirefHEAD_to_emit, $sequence, $sequence_to_emit, $taxon_id, $map_value, $uniref_entry_flag, $id_mapping_flag, $taxon_mapping_flag,$uniprot,$geneid,$refseq,$gi,$pdb,$ipi,$mim,$unigene,$embl,$ensembl,$cross_ref);
+my ($line, @line_split, $unirefID, $unirefHEAD, $unirefID_to_emit, $unirefHEAD_to_emit, $sequence, $sequence_to_emit, $kingdom_id, $map_value, $uniref_entry_flag, $id_mapping_flag, $kingdom_mapping_flag,$uniprot,$geneid,$refseq,$gi,$pdb,$go,$ipi,$pir,$taxon,$mim,$unigene,$embl,$ensembl,$cross_ref,$taxon_ids,$member_ids,$clusters_flag);
 
 $sequence = '';
 $uniref_entry_flag = 0;
 $id_mapping_flag = 0;
-$taxon_mapping_flag = 0;
+$kingdom_mapping_flag = 0;
+$clusters_flag = 0;
 $uniprot='';
 $geneid='';
 $refseq='';
 $gi='';
 $pdb='';
+$go='';
 $ipi='';
+$pir='';
+$taxon='';
 $mim='';
 $unigene='';
 $embl='';
@@ -68,8 +72,17 @@ $ensembl='';
             if (length($pdb)>0) {
 		    $map_value = $map_value.'^|^PDB|'.$pdb;
 	    }
+            if (length($go)>0) {
+		    $map_value = $map_value.'^|^GO|'.$go;
+	    }
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
+	    }
+            if (length($ipi)>0) {
+		    $map_value = $map_value.'^|^PIR|'.$pir;
+	    }
+            if (length($ipi)>0) {
+		    $map_value = $map_value.'^|^Taxon|'.$taxon;
 	    }
             if (length($mim)>0) {
 		    $map_value = $map_value.'^|^OMIM|'.$mim;
@@ -94,7 +107,10 @@ $ensembl='';
             $refseq='';
             $gi='';
             $pdb='';
+	    $go='';
             $ipi='';
+	    $pir='';
+	    $taxon='';
             $mim='';
 	    $unigene='';
             $embl='';
@@ -103,11 +119,19 @@ $ensembl='';
         }
 
 
-        if ( $taxon_mapping_flag == 1) {
+        if ( $kingdom_mapping_flag == 1) {
             
-	    $taxon_mapping_flag = 0;
+	    $kingdom_mapping_flag = 0;
 
-	    print "$unirefID-3\t$taxon_id\n";
+	    print "$unirefID-3\t$kingdom_id\n";
+
+        }
+
+        if ( $clusters_flag == 1) {
+            
+	    $clusters_flag = 0;
+
+	    print "$unirefID-4\t$taxon_ids\t$member_ids\n";
 
         }
 
@@ -147,13 +171,22 @@ $ensembl='';
 #
 #	}
 #
-        elsif ( $line_split[1] eq 'TAXON' ){
+        elsif ( $line_split[1] eq 'KINGDOM' ){
 
-            $unirefID = $line_split[0];
-	    $taxon_id = $line_split[2];
-	    $taxon_mapping_flag = 1;	
-	}
+           $unirefID = $line_split[0];
+	   $kingdom_id = $line_split[2];
+	   $kingdom_mapping_flag = 1;
 
+	   }
+
+        elsif ( $line_split[1] eq 'CLUSTERS' ){
+
+           $unirefID = $line_split[0];
+	   $member_ids = $line_split[2];
+	   $taxon_ids = $line_split[3];
+	   $clusters_flag = 1;
+
+	   }
 
 	else {
 
@@ -179,8 +212,17 @@ $ensembl='';
 		   elsif ($cross_ref =~ s/PDB-//) {
 			   $pdb = $cross_ref;
 		   }
+		   elsif ($cross_ref =~ s/GO-//) {
+			   $go = $cross_ref;
+		   }
 		   elsif ($cross_ref =~ s/IPI-//) {
 			   $ipi = $cross_ref;
+		   }
+		   elsif ($cross_ref =~ s/PIR-//) {
+			   $pir = $cross_ref;
+		   }
+		   elsif ($cross_ref =~ s/Taxon-//) {
+			   $taxon = $cross_ref;
 		   }
 		   elsif ($cross_ref =~ s/MIM-//) {
 			   $mim = $cross_ref;
@@ -242,8 +284,17 @@ $ensembl='';
             if (length($pdb)>0) {
 		    $map_value = $map_value.'^|^PDB|'.$pdb;
 	    }
+            if (length($go)>0) {
+		    $map_value = $map_value.'^|^GO|'.$go;
+	    }
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
+	    }
+            if (length($ipi)>0) {
+		    $map_value = $map_value.'^|^PIR|'.$pir;
+	    }
+            if (length($ipi)>0) {
+		    $map_value = $map_value.'^|^Taxon|'.$taxon;
 	    }
             if (length($mim)>0) {
 		    $map_value = $map_value.'^|^OMIM|'.$mim;
@@ -268,7 +319,10 @@ $ensembl='';
             $refseq='';
             $gi='';
             $pdb='';
+	    $go='';
             $ipi='';
+	    $pir='';
+	    $taxon='';
             $mim='';
 	    $unigene='';
             $embl='';
@@ -279,11 +333,19 @@ $ensembl='';
 
 
 
-        if ( $taxon_mapping_flag == 1) {
+        if ( $kingdom_mapping_flag == 1) {
             
-	    $taxon_mapping_flag = 0;
+	    $kingdom_mapping_flag = 0;
 
-	    print "$unirefID-3\t$taxon_id\n";
+	    print "$unirefID-3\t$kingdom_id\n";
 
         }
 
+
+        if ( $clusters_flag == 1) {
+            
+	    $clusters_flag = 0;
+
+	    print "$unirefID-4\t$taxon_ids\t$member_ids\n";
+
+        }
