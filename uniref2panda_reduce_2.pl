@@ -14,33 +14,37 @@
 use strict;
 use warnings;
 
-my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag, $members_taxons, $cluster_ids);
+my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag, $cross_refs_flag, $kingdom_flag, $clusters_flag, $members_taxons, $cluster_ids, $kingdom);
 
 $uniref_entry_flag = 0;
+$cross_refs_flag = 0;
+$kingdom_flag = 0;
+$clusters_flag = 0;
 
 
     while (<STDIN>) {
 
 
 
-        if ($uniref_entry_flag == 1) {
+        if ($uniref_entry_flag == 1 and $cross_refs_flag == 1 and $kingdom_flag == 1 and $clusters_flag = 1) {
             
 	    $uniref_entry_flag = 0;
+            $cross_refs_flag = 0;
+            $kingdom_flag = 0;
+            $clusters_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
             else {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
 	    print "$newHeader\n$sequence\n";
 
-            #$unirefHEAD = '';
-            #$giID = '';
-
+ 
         }
 
 
@@ -53,7 +57,8 @@ $uniref_entry_flag = 0;
        
         # If the line is a uniref header
         #if ( length($unirefHEAD) > 1 and $uniref_entry_flag == 0 ) {
-         if ($key =~ s/-1//) {
+         #if ($key =~ s/-1//) {
+         if ($value =~ s/-1$//) {
 
             ($unirefHEAD,$sequence) =  split(/---/,$value);
 
@@ -70,14 +75,15 @@ $uniref_entry_flag = 0;
                     $unirefID = $isoformData[0];
                 }
 																				            
+	    $uniref_entry_flag = 1;
 
             }
 
 
 
         # line is a uniref id mapping header
-         elsif ($key =~ s/-2//) {
-        #elsif ( length($giID) > 1 and $key == $unirefHEADkey ) {
+         #elsif ($key =~ s/-2//) {
+         elsif ($value =~ s/-2$//) {
 
 
 	     # Intialize the remaining tags. Set wgp, cg, and closed to 1 if the EMBL ID starts with any of appropriate letters.
@@ -87,23 +93,29 @@ $uniref_entry_flag = 0;
                  $misc = "(exp=0; wgp=1; cg=1; closed=1; pub=1; rf_status =;)";
              }
 
-             $taxonID = $value =~ s/^|^Taxon|([0-9]+))//;
+             $value =~ /\^\|\^Taxon\|([0-9]+)/;
+	     $taxonID = $1;
+             $value =~ s/\^\|\^Taxon\|[0-9]+//;
 	     $crossIDs = $value;
+	     $cross_refs_flag = 1;
 
 	    }
 
-         elsif ($key =~ s/-3// ) {
+         #elsif ($key =~ s/-3// ) {
+         elsif ($value =~ s/-3$// ) {
 
 		 $kingdom = $value;
+		 $kingdom_flag = 1;
 	    }
             
 
-         elsif ($key =~ s/-4// ) {
+         #elsif ($key =~ s/-4// ) {
+         elsif ($value =~ s/-4$// ) {
 
-		 ($members_taxons, $cluster_ids) = split(/\t/,$value);
-		 $members_taxons =~ s/^/Cluster_Taxons\|/;
-		 $cluster_ids =~ s/^/Cluster_ids\|/;
-	         $uniref_entry_flag = 1;
+		 ($members_taxons,$cluster_ids) = split(/---/,$value);
+		 $members_taxons = "Cluster_Taxons|$members_taxons";
+		 $cluster_ids = "Cluster_ids|$cluster_ids";
+	         $clusters_flag = 1;
 
 	    }
             
@@ -113,17 +125,20 @@ $uniref_entry_flag = 0;
 
         #need that for after processing the last trio of records 
    
-        if ($uniref_entry_flag == 1)  {
+
+        if ($uniref_entry_flag == 1 and $cross_refs_flag == 1 and $kingdom_flag == 1 and $clusters_flag = 1 ) {
             
 	    $uniref_entry_flag = 0;
+            $cross_refs_flag = 0;
+            $kingdom_flag = 0;
+            $clusters_flag = 0;
 
-            #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
-	       
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
+	    }   
 
             else {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon;} $misc";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
 	       }
 
 	    print "$newHeader\n$sequence\n";

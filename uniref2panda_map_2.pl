@@ -50,7 +50,8 @@ $ensembl='';
 		
             #we will need the Uniref header for the convertion during the reduce step
 	    $map_value = $unirefHEAD.'---'.$sequence;
-	    print "$unirefID-1\t$map_value\n";
+	    #print "$unirefID-1\t$map_value\n";
+	    print "$unirefID\t$map_value-1\n";
 
         }
 
@@ -78,10 +79,10 @@ $ensembl='';
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
 	    }
-            if (length($ipi)>0) {
+            if (length($pir)>0) {
 		    $map_value = $map_value.'^|^PIR|'.$pir;
 	    }
-            if (length($ipi)>0) {
+            if (length($taxon)>0) {
 		    $map_value = $map_value.'^|^Taxon|'.$taxon;
 	    }
             if (length($mim)>0) {
@@ -100,7 +101,8 @@ $ensembl='';
 		    $map_value = $map_value.'^|^ENSEMBL|'.$ensembl;
 	    }
 
-	    print "$unirefID-2\t$map_value\n";
+	    #print "$unirefID-2\t$map_value\n";
+	    print "$unirefID\t$map_value-2\n";
 
             $uniprot='';
             $geneid='';
@@ -123,7 +125,8 @@ $ensembl='';
             
 	    $kingdom_mapping_flag = 0;
 
-	    print "$unirefID-3\t$kingdom_id\n";
+	    #print "$unirefID-3\t$kingdom_id\n";
+	    print "$unirefID\t$kingdom_id-3\n";
 
         }
 
@@ -131,7 +134,8 @@ $ensembl='';
             
 	    $clusters_flag = 0;
 
-	    print "$unirefID-4\t$taxon_ids\t$member_ids\n";
+	    #print "$unirefID-4\t$taxon_ids---$member_ids\n";
+	    print "$unirefID\t$taxon_ids---$member_ids-4\n";
 
         }
 
@@ -261,7 +265,8 @@ $ensembl='';
 		
             #we will need the Uniref header for the convertion during the reduce step
 	    $map_value = $unirefHEAD.'---'.$sequence;
-	    print "$unirefID-1\t$map_value\n";
+	    #print "$unirefID-1\t$map_value\n";
+	    print "$unirefID\t$map_value-1\n";
 
         }
 
@@ -290,10 +295,10 @@ $ensembl='';
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
 	    }
-            if (length($ipi)>0) {
+            if (length($pir)>0) {
 		    $map_value = $map_value.'^|^PIR|'.$pir;
 	    }
-            if (length($ipi)>0) {
+            if (length($taxon)>0) {
 		    $map_value = $map_value.'^|^Taxon|'.$taxon;
 	    }
             if (length($mim)>0) {
@@ -312,7 +317,8 @@ $ensembl='';
 		    $map_value = $map_value.'^|^ENSEMBL|'.$ensembl;
 	    }
 
-	    print "$unirefID-2\t$map_value\n";
+	    #print "$unirefID-2\t$map_value\n";
+	    print "$unirefID\t$map_value-2\n";
 
             $uniprot='';
             $geneid='';
@@ -337,7 +343,8 @@ $ensembl='';
             
 	    $kingdom_mapping_flag = 0;
 
-	    print "$unirefID-3\t$kingdom_id\n";
+	    #print "$unirefID-3\t$kingdom_id\n";
+	    print "$unirefID\t$kingdom_id-3\n";
 
         }
 
@@ -346,6 +353,7 @@ $ensembl='';
             
 	    $clusters_flag = 0;
 
-	    print "$unirefID-4\t$taxon_ids\t$member_ids\n";
+	    #print "$unirefID-4\t$taxon_ids---$member_ids\n";
+	    print "$unirefID\t$taxon_ids---$member_ids-4\n";
 
         }

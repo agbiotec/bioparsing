@@ -1,3 +1,7 @@
+(1). GET THE DATA
+
+- Download the latest release of UniRef100 and UniProt/Trembl:
+
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping_selected.tab.gz
 wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz
@@ -5,75 +9,88 @@ wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/c
 
 gunzip *
 
-cat uniprot_sprot.dat uniprot_trembl.dat >> uniprot_sprot_trembl.dat (will be used for parsing lineages and taxon ids)
-
-1). 
-
-2). First Hadoop job to get the taxon ids and lineages
-/opt/hadoop/bin/hadoop fs -put uniprot_trembl.dat /data/kkrampis/uniprot/uniprot_trembl_sprot.dat (former is local dir, latter is hadoop dir)
-
---Run the job:
-/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniprot/uniprot_trembl_sprot.dat -output /data/kkrampis/uniprot/uniprot_taxon_parsed_NCBI_taxid.dat.2  -file /home/kkrampis/devel/BioDoop/uniprot_hadoop_mapper_parser.rb  -mapper /home/kkrampis/devel/BioDoop/uniprot_hadoop_mapper_parser.rb -numReduceTasks 128
-( 4mins, 36sec )
-
---Export data to local file system:
-/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniprot/uniprot_taxon_parsed_NCBI_taxid.dat.2 /usr/local/scratch/kkrampis (former is hadoop dir, latter is local dir)
+- Large files not needed anymore:
+rm uniprot_sprot.dat uniprot_trembl.dat 
 
 
 
 
-2). Prepare the file with Uniref sequences and taxon/lineages for the second Hadoop job
+(2). PRE-FORMAT THE DATA FOR UPLOAD TO HADOOP
 
--- Join sequence and header lines to avoid split of a multi-line sequence across the Hadoop file chunks (separation of sequence and header
-   is take care by the code).
+- Join sequence and header lines to avoid split of a multi-line sequence across the Hadoop file chunks 
+  (separation of sequence and header is take care by the Hadoop code).
 
   awk '/^>/&&NR>1{print "";}{ printf "%s",/^>/ ? $0"\t":$0 }' uniref100.fasta > uniref100.fasta.joined
+  (6 min, 52 sec)
+  rm uniref100.fasta
 
 
--- Join cross-reference lines 
+- Run Perl script that gets only the cross-references and lineage mappings from Uniprot that pertain to UniRef100:
 
-  perl idmappings_flatten.pl idmapping.dat >> idmapping.single_line.dat
+subset_idmappings.pl uniref100.fasta.joined idmapping_selected.tab  uniref100_cross_refs uniref100_cluster_proteins_taxons 
+(4 min, 36 sec)
 
--- Add taxon/lineages
-cd /usr/local/scratch/kkrampis/uniprot_taxon_parsed_NCBI_taxid.dat.2
-(notice the 128 part-***** files which are the Hadoop splits -numReduceTasks when processing taxon/lineages in parallel)
-cat part-* >> taxonID_mapping.dat
+Input files:
+uniref100.fasta  - the Uniref100
+idmapping_selected.tab - cross references of Uniprot/Trembl to other databases
 
--- Use only the cross-reference id mappings , and taxon mappings that are present in the clusters of Uniref100 (otherwise Hadoop gets confused by the extra keys)
+Output files:
+uniref100_cross_refs - cross references to other databases of proteins only from Uniref100 (*)
+uniref100_cluster_proteins_taxons - will be used to find the members of each cluster from Uniref100 (**)
 
-grep \> uniref100.fasta | cut -f 1 -d " " | sed -e 's/>UniRef100_//' | sed -e 's/^/grep /' | sed -e 's/$/ idmapping.single_line.dat >> uniref100.idmappings.dat/' > uniref100.idmappings.sh &
-
-grep \> uniref100.fasta | cut -f 1 -d " " | sed -e 's/>UniRef100_//' | sed -e 's/^/grep /' | sed -e 's/$/ taxonID_mapping.dat >> uniref100.taxonID_mapping.dat/' > uniref100.taxonID_mapping.sh &
-
-./uniref100.idmappings.sh
-./uniref100.taxonID_mapping.sh
-
-
--- Fix the file that will be loaded on Hadoop
-cat uniref100.idmappings.dat >> uniref100.fasta.joined
-cat uniref100.taxonID_mapping.dat >> uniref100.fasta.joined
-
-
--- How many unique kingdoms we have ?
-cut -d '-' -f 4 part-00* | sort -u
+(*) Will be merged with the Uniref100 data, and used for the FINAL HADOOP JOB for the final Uniref100 to PANDA convertion
+(**) Will be used as input to the SECOND HADOOP JOB, and the output of this job will be merged with the Uniref100 data
 
 
 
- 
-3). Second Hadoop job
 
---SE/UniRef_to_Panda/ Copy prepared file into Hadoop filesystem
-/opt/hadoop/bin/hadoop fs -put /usr/local/scratch/kkrampis/uniref/uniref100.fasta.joined /data/kkrampis/uniprot2panda/
+(3). FIRST HADOOP JOB, GETS KINGOMS FROM ALL PROTEINS IN UniProt/Trembl
+
+- Copy data into Hadoop filesystem (former is local dir, latter is Hadoop dir):
+/opt/hadoop/bin/hadoop fs -put uniprot_sprot_trembl.dat /data/kkrampis/uniref2panda/
+
+- Run the job:
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniref2panda/uniprot_sprot_trembl.dat -output /data/kkrampis/uniref2panda/uniref100_lineages -file /home/kkrampis/devel/BioDoop/uniprot_taxon_lineage_map.rb -mapper /home/kkrampis/devel/BioDoop/uniprot_taxon_lineage_map.rb
+
+- Get output from Hadoop back to local file system (former is Hadoop dir, latter is local dir)
+/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniref2panda/uniref100_lineages uniref100_lineages
+
+
+
+(4). SECOND HADOOP JOB,	FINDS ALL MEMBERS OF EACH CLUSTER FROM Uniref100
+
+- Copy data into Hadoop filesystem (former is local dir, latter is Hadoop dir):
+/opt/hadoop/bin/hadoop fs -put uniref100_cluster_proteins_taxons /data/kkrampis/uniref2panda/
+
+- Run the job:
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons -output /data/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons_output  -file /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_map.rb  -mapper /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_map.rb -file /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_reduce.rb -reducer /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_reduce.rb -numReduceTasks 128
+( 3 mins, 30 sec )
+
+- Get output from Hadoop back to local file system (former is Hadoop dir, latter is local dir), and concatenate the parts :
+
+/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons_output  uniref100_cluster_proteins_taxons_output 
+
+cat uniref100_cluster_proteins_taxons_output/part-* >> uniref100_clusters
+
+
+
+
+(5). FINAL HADOOP JOB. INTEGRATES CLUSTER MEMBERS, CROSS REFERENCES TO THE Uniref100 HEADER. ALSO CONVERTS HEADER TO PANDA FORMAT.
+
+- Merge all data files for cross references, cluster members and lineages of Uniref100
+cat uniref100_cross_refs uniref100_clusters uniref100_lineages/part-00000 >> uniref100.fasta.joined
+
+- Copy the data to the Hadoop filesystem
+/opt/hadoop/bin/hadoop fs -put /uniref100.fasta.joined /data/kkrampis/uniprot2panda/
 
 --Run the job
-/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniprot2panda/uniref100.fasta.joined -output /data/kkrampis/uniprot2panda/uniref2panda.with.kingdoms -file /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl  -mapper /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl -file /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl  -reducer /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl -numReduceTasks 128
-(approximately 1 hr)
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /data/kkrampis/uniref2panda/uniref100.fasta.joined -output /data/kkrampis/uniref2panda/uniref100_panda -file /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl  -mapper /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl -file /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl  -reducer /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl -numReduceTasks 128
+(min, sec)
 
 
 -- Copy output to local filesystem and concatenate file parts
-/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniprot2panda/uniref2panda.with.kingdoms /usr/local/scratch/kkrampis
-cd /usr/local/scratch/kkrampis/uniref2panda.with.kingdoms
-cat part-* >> uniref100_PANDA_Hadoop.fasta
+/opt/hadoop/bin/hadoop fs -get /data/kkrampis/uniref2panda/uniref100_panda uniref100_panda
+cat uniref100_panda/part-* >> uniref100_PANDA_Hadoop.fasta
 cp uniref100_PANDA_Hadoop.fasta /usr/local/projects/PANDA/PANDA_uniref/all/
 
 
