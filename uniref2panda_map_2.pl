@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 
-my ($line, @line_split, $unirefID, $unirefHEAD, $unirefID_to_emit, $unirefHEAD_to_emit, $sequence, $sequence_to_emit, $kingdom_id, $map_value, $uniref_entry_flag, $id_mapping_flag, $kingdom_mapping_flag,$uniprot,$geneid,$refseq,$gi,$pdb,$go,$ipi,$pir,$taxon,$mim,$unigene,$embl,$ensembl,$cross_ref,$taxon_ids,$member_ids,$clusters_flag);
+my ($line, @line_split, $unirefID, $unirefHEAD, $unirefID_to_emit, $unirefHEAD_to_emit, $sequence, $sequence_to_emit, $kingdom_id, $map_value, $uniref_entry_flag, $id_mapping_flag, $kingdom_mapping_flag,$uniprot,$geneid,$refseq,$gi,$pdb,$go,$ipi,$pir,$taxon,$mim,$unigene,$embl,$ensembl,$cross_ref,$taxon_ids,$member_ids,$clusters_flag, @gids, @goids, @gbids, @rfids);
 
 $sequence = '';
 $uniref_entry_flag = 0;
@@ -49,7 +49,7 @@ $ensembl='';
             #emit key-value before we start working on a new record 
 		
             #we will need the Uniref header for the convertion during the reduce step
-	    $map_value = $unirefHEAD.'---'.$sequence;
+	    $map_value = $unirefHEAD.'@@@'.$sequence;
 	    #print "$unirefID-1\t$map_value\n";
 	    print "$unirefID\t$map_value-1\n";
 
@@ -65,16 +65,38 @@ $ensembl='';
 		    $map_value = $map_value.'^|^EntrezGene|'.$geneid;
 	    }
             if (length($refseq)>0) {
-		    $map_value = $map_value.'^|^RF|'.$refseq;
+		    @rfids = split(/ /,$refseq);
+		    $refseq = '';
+		    foreach(@rfids) {
+                        $_=~ s/\s//;
+                        $refseq = 'RF|'.$_.'^|'.$refseq; 
+		    }
+		    $refseq =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$refseq;
 	    }
             if (length($gi)>0) {
-		    $map_value = $map_value.'^|^GI|'.$gi;
+		    @gids = split(/ /,$gi);
+		    $gi = '';
+		    foreach(@gids) {
+                        $_=~ s/\s//;
+                        $gi = 'GI|'.$_.'^|'.$gi; 
+		    }
+		    $gi =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$gi;
 	    }
             if (length($pdb)>0) {
 		    $map_value = $map_value.'^|^PDB|'.$pdb;
 	    }
             if (length($go)>0) {
-		    $map_value = $map_value.'^|^GO|'.$go;
+		    @goids = split(/ /,$go);
+		    $go = '';
+		    foreach(@goids) {
+                        $_=~ s/\s//;
+                        $_=~ s/GO://;
+                        $go = 'GO|'.$_.'^|'.$go; 
+		    }
+		    $go =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$go;
 	    }
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
@@ -92,10 +114,24 @@ $ensembl='';
 		    $map_value = $map_value.'^|^UniGene|'.$unigene;
 	    }
             if (length($embl)>0 and ($embl =~ m/^(AL|BX|CR|CT|CU).*/)) {
-		    $map_value = $map_value.'^|^EMBL|'.$embl.'---';
+		    @gbids = split(/ /,$embl);
+		    $embl = '';
+		    foreach(@gbids) {
+                        $_=~ s/\s//;
+                        $embl = 'GB|'.$_.'^|'.$embl; 
+		    }
+		    $embl =~ s/\^|$//;
+		    $map_value = $map_value.'^|^'.$embl.'---';
 	    }
             if (length($embl)>0) {
-		    $map_value = $map_value.'^|^EMBL|'.$embl;
+		    @gbids = split(/ /,$embl);
+		    $embl = '';
+		    foreach(@gbids) {
+                        $_=~ s/\s//;
+                        $embl = 'GB|'.$_.'^|'.$embl; 
+		    }
+		    $embl =~ s/\^|$//;
+		    $map_value = $map_value.'^|^'.$embl;
 	    }
             if (length($ensembl)>0) {
 		    $map_value = $map_value.'^|^ENSEMBL|'.$ensembl;
@@ -139,6 +175,9 @@ $ensembl='';
 
         }
 
+
+
+        # start working on parsing the lines of the file
 
         $line = $_;
         chomp $line;
@@ -264,7 +303,7 @@ $ensembl='';
             #emit key-value before we start working on a new record 
 		
             #we will need the Uniref header for the convertion during the reduce step
-	    $map_value = $unirefHEAD.'---'.$sequence;
+	    $map_value = $unirefHEAD.'@@@'.$sequence;
 	    #print "$unirefID-1\t$map_value\n";
 	    print "$unirefID\t$map_value-1\n";
 
@@ -281,16 +320,38 @@ $ensembl='';
 		    $map_value = $map_value.'^|^EntrezGene|'.$geneid;
 	    }
             if (length($refseq)>0) {
-		    $map_value = $map_value.'^|^RF|'.$refseq;
+		    @rfids = split(/ /,$refseq);
+		    $refseq = '';
+		    foreach(@rfids) {
+                        $_=~ s/\s//;
+                        $refseq = 'RF|'.$_.'^|'.$refseq; 
+		    }
+		    $refseq =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$refseq;
 	    }
             if (length($gi)>0) {
-		    $map_value = $map_value.'^|^GI|'.$gi;
+		    @gids = split(/ /,$gi);
+		    $gi = '';
+		    foreach(@gids) {
+                        $_=~ s/\s//;
+                        $gi = 'GI|'.$_.'^|'.$gi; 
+		    }
+		    $gi =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$gi;
 	    }
             if (length($pdb)>0) {
 		    $map_value = $map_value.'^|^PDB|'.$pdb;
 	    }
             if (length($go)>0) {
-		    $map_value = $map_value.'^|^GO|'.$go;
+		    @goids = split(/ /,$go);
+		    $go = '';
+		    foreach(@goids) {
+                        $_=~ s/\s//;
+                        $_=~ s/GO://;
+                        $go = 'GO|'.$_.'^|'.$go; 
+		    }
+		    $go =~ s/\^\|$//;
+         	    $map_value = $map_value.'^|^'.$go;
 	    }
             if (length($ipi)>0) {
 		    $map_value = $map_value.'^|^IPI|'.$ipi;
@@ -308,10 +369,24 @@ $ensembl='';
 		    $map_value = $map_value.'^|^UniGene|'.$unigene;
 	    }
             if (length($embl)>0 and ($embl =~ m/^(AL|BX|CR|CT|CU).*/)) {
-		    $map_value = $map_value.'^|^EMBL|'.$embl.'---';
+		    @gbids = split(/ /,$embl);
+		    $embl = '';
+		    foreach(@gbids) {
+                        $_=~ s/\s//;
+                        $embl = 'GB|'.$_.'^|'.$embl; 
+		    }
+		    $embl =~ s/\^|$//;
+		    $map_value = $map_value.'^|^'.$embl.'---';
 	    }
             if (length($embl)>0) {
-		    $map_value = $map_value.'^|^EMBL|'.$embl;
+		    @gbids = split(/ /,$embl);
+		    $embl = '';
+		    foreach(@gbids) {
+                        $_=~ s/\s//;
+                        $embl = 'GB|'.$_.'^|'.$embl; 
+		    }
+		    $embl =~ s/\^|$//;
+		    $map_value = $map_value.'^|^'.$embl;
 	    }
             if (length($ensembl)>0) {
 		    $map_value = $map_value.'^|^ENSEMBL|'.$ensembl;

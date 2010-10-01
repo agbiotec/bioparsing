@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 
-my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag, $cross_refs_flag, $kingdom_flag, $clusters_flag, $members_taxons, $cluster_ids, $kingdom);
+my ( $unirefID, $unirefHEAD, $unirefCluster, $unirefTaxon, $isoform, @isoformData, $newHeader, $misc, $sequence, $crossIDs, $taxonID, $key, $value, $uniref_entry_flag, $cross_refs_flag, $kingdom_flag, $clusters_flag,@cluster_members, $members_taxons, $cluster_ids, $kingdom);
 
 $uniref_entry_flag = 0;
 $cross_refs_flag = 0;
@@ -35,11 +35,11 @@ $clusters_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
+	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
             else {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
+	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
 	    print "$newHeader\n$sequence\n";
@@ -60,7 +60,7 @@ $clusters_flag = 0;
          #if ($key =~ s/-1//) {
          if ($value =~ s/-1$//) {
 
-            ($unirefHEAD,$sequence) =  split(/---/,$value);
+            ($unirefHEAD,$sequence) =  split(/@@@/,$value);
 
             # Use regex to acquire the following:
             $unirefHEAD =~ m/>([A-Za-z0-9]+)_([A-Za-z0-9-]+) (.+) n=\d+ Tax=(.+) RepID.*/;
@@ -113,8 +113,18 @@ $clusters_flag = 0;
          elsif ($value =~ s/-4$// ) {
 
 		 ($members_taxons,$cluster_ids) = split(/---/,$value);
+		 $members_taxons =~ s/^,//;
 		 $members_taxons = "Cluster_Taxons|$members_taxons";
-		 $cluster_ids = "Cluster_ids|$cluster_ids";
+
+                 @cluster_members = split(/,/,$cluster_ids);
+		 $cluster_ids = '';
+                 foreach(@cluster_members) {
+			if (length($_)>0) { 
+		            $cluster_ids = $cluster_ids.'SP|'.$_.'^|';		
+                        }
+		 }
+                 
+		 $cluster_ids =~ s/\^\|$//;
 	         $clusters_flag = 1;
 
 	    }
@@ -134,11 +144,11 @@ $clusters_flag = 0;
             $clusters_flag = 0;
 
             if ($isoform eq "") {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
+	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
 	    }   
 
             else {
-	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform---$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
+	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
 	       }
 
 	    print "$newHeader\n$sequence\n";

@@ -95,16 +95,25 @@ cp uniref100_PANDA_Hadoop.fasta /usr/local/projects/PANDA/PANDA_uniref/all/
 
 
 -- Split by Kingdom
-grep -A 1 "---Archaea" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Archaea//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea_Hadoop.fasta
-grep -A 1 "---Bacteria" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Bacteria//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria_Hadoop.fasta
-grep -A 1 "---Eukaryota" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Eukaryota//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota_Hadoop.fasta
-grep -A 1 "---Viruses" uniref100_PANDA_Hadoop.fasta | sed -e 's/---Viruses//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses_Hadoop.fasta
-grep -A 1 "---noKingdom" uniref100_PANDA_Hadoop.fasta | sed -e 's/---noKingdom//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom_Hadoop.fasta
+grep -A 1 "\-\-\-Archaea" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Archaea//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea.fasta  &
+grep -A 1 "\-\-\-Bacteria" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Bacteria//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria.fasta  &
+grep -A 1 "\-\-\-Eukaryota" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Eukaryota//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota.fasta  &
+grep -A 1 "\-\-\-Viruses" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Viruses//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses.fasta  &
+grep -A 1 "\-\-\-noKingdom" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@noKingdom//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom.fasta  &
+grep -A 1 "\-\-\-unclassifiedsequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@unclassifiedsequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
+grep -A 1 "\-\-\-unclassified" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@unclassified//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
+grep -A 1 "\-\-\-othersequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@othersequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
 
-grep -A 1 "---unclassifiedsequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/---unclassifiedsequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
-grep -A 1 "---unclassified" uniref100_PANDA_Hadoop.fasta | sed -e 's/---unclassified//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
-grep -A 1 "---othersequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/---othersequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified_Hadoop.fasta
 
+-- Cleanup the Kingdom identifiers
+sed -e 's/@@@[A-Za-z]*//' /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA_Hadoop.fasta > /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA.fasta
 
 -- Format DB
-qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea_Hadoop.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta -o T
+
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/all formatdb -i /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA_Hadoop.fasta -o T
