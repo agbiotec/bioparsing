@@ -35,13 +35,14 @@ $clusters_flag = 0;
 
             #NEED taxon:TAXID HERE FROM THE GI - NCBI TAXID MAPPING
             if ($isoform eq "") {
-	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
             else {
-	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc ";
 	       }
 
+	    $newHeader =~ s/\t//g;
 	    print "$newHeader\n$sequence\n";
 
  
@@ -144,13 +145,14 @@ $clusters_flag = 0;
             $clusters_flag = 0;
 
             if ($isoform eq "") {
-	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
 	    }   
 
             else {
-	        $newHeader = ">SP|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
+	        $newHeader = ">Uniref100|$unirefID^|^$crossIDs^|^$cluster_ids^|^$members_taxons^|^$isoform\@\@\@$kingdom $unirefCluster taxon:$taxonID {$unirefTaxon} $misc";
 	       }
 
+	    $newHeader =~ s/\t//g;
 	    print "$newHeader\n$sequence\n";
 
             #$unirefHEAD = '';
