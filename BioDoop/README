@@ -1,0 +1,124 @@
+(1). GET THE DATA
+
+- Download the latest release of UniRef100 and UniProt/Trembl:
+
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping_selected.tab.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz
+wget ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz
+
+gunzip *
+
+- Do this update to see if proteins come from Swissprot or Trembl
+mv uniprot_sprot.dat uniprot_sprot_pre.dat
+sed -e 's/^OC   /OC   sprot-/' uniprot_sprot_pre.dat > uniprot_sprot.dat
+
+- Merge and remove large files not needed anymore:
+cat uniprot_sprot.dat uniprot_trembl.dat > uniprot_sprot_trembl.dat
+rm uniprot_sprot_pre.dat uniprot_sprot.dat uniprot_trembl.dat 
+
+
+
+
+(2). PRE-FORMAT THE DATA FOR UPLOAD TO HADOOP
+
+- Join sequence and header lines to avoid split of a multi-line sequence across the Hadoop file chunks 
+  (separation of sequence and header is take care by the Hadoop code).
+
+  awk '/^>/&&NR>1{print "";}{ printf "%s",/^>/ ? $0"\t":$0 }' uniref100.fasta > uniref100.fasta.joined
+  (6 min, 52 sec)
+  rm uniref100.fasta
+
+
+- Run Perl script that gets only the cross-references and lineage mappings from Uniprot that pertain to UniRef100:
+
+subset_idmappings.pl uniref100.fasta.joined idmapping_selected.tab  uniref100_cross_refs uniref100_cluster_proteins_taxons 
+(4 min, 36 sec)
+
+Input files:
+uniref100.fasta  - the Uniref100
+idmapping_selected.tab - cross references of Uniprot/Trembl to other databases
+
+Output files:
+uniref100_cross_refs - cross references to other databases of proteins only from Uniref100 (*)
+uniref100_cluster_proteins_taxons - will be used to find the members of each cluster from Uniref100 (**)
+
+(*) Will be merged with the Uniref100 data, and used for the FINAL HADOOP JOB for the final Uniref100 to PANDA convertion
+(**) Will be used as input to the SECOND HADOOP JOB, and the output of this job will be merged with the Uniref100 data
+
+
+
+
+(3). FIRST HADOOP JOB, GETS KINGOMS FROM ALL PROTEINS IN UniProt/Trembl
+
+- Copy data into Hadoop filesystem (former is local dir, latter is Hadoop dir):
+/opt/hadoop/bin/hadoop fs -put uniprot_sprot_trembl.dat /user/kkrampis/uniref2panda/
+
+- Run the job:
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /user/kkrampis/uniref2panda/uniprot_sprot_trembl.dat -output /user/kkrampis/uniref2panda/uniref100_lineages -file /home/kkrampis/devel/BioDoop/uniprot_taxon_lineage_map.rb -mapper /home/kkrampis/devel/BioDoop/uniprot_taxon_lineage_map.rb
+
+- Get output from Hadoop back to local file system (former is Hadoop dir, latter is local dir)
+/opt/hadoop/bin/hadoop fs -get /user/kkrampis/uniref2panda/uniref100_lineages uniref100_lineages
+
+
+
+(4). SECOND HADOOP JOB,	FINDS ALL MEMBERS OF EACH CLUSTER FROM Uniref100
+
+- Copy data into Hadoop filesystem (former is local dir, latter is Hadoop dir):
+/opt/hadoop/bin/hadoop fs -put uniref100_cluster_proteins_taxons /user/kkrampis/uniref2panda/
+
+- Run the job:
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /user/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons -output /user/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons_output  -file /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_map.rb  -mapper /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_map.rb -file /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_reduce.rb -reducer /home/kkrampis/devel/BioDoop/uniprot_taxon_clusters_reduce.rb -numReduceTasks 128
+( 3 mins, 30 sec )
+
+- Get output from Hadoop back to local file system (former is Hadoop dir, latter is local dir), and concatenate the parts :
+
+/opt/hadoop/bin/hadoop fs -get /user/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons_output  uniref100_cluster_proteins_taxons_output 
+
+cat uniref100_cluster_proteins_taxons_output/part-* >> uniref100_clusters
+
+
+
+
+(5). FINAL HADOOP JOB. INTEGRATES CLUSTER MEMBERS, CROSS REFERENCES TO THE Uniref100 HEADER. ALSO CONVERTS HEADER TO PANDA FORMAT.
+
+- Merge all data files for cross references, cluster members and lineages of Uniref100
+cat uniref100_cross_refs uniref100_clusters uniref100_lineages/part-00000 >> uniref100.fasta.joined
+
+- Copy the data to the Hadoop filesystem
+/opt/hadoop/bin/hadoop fs -put uniref100.fasta.joined /user/kkrampis/uniref2panda/
+
+--Run the job
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /user/kkrampis/uniref2panda/uniref100.fasta.joined -output /user/kkrampis/uniref2panda/uniref100_panda -file /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl  -mapper /home/kkrampis/devel/BioDoop/uniref2panda_map_2.pl -file /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl  -reducer /home/kkrampis/devel/BioDoop/uniref2panda_reduce_2.pl -numReduceTasks 128
+(min, sec)
+
+
+-- Copy output to local filesystem and concatenate file parts
+/opt/hadoop/bin/hadoop fs -get /user/kkrampis/uniref2panda/uniref100_panda uniref100_panda
+cat uniref100_panda/part-* >> uniref100_PANDA_Hadoop.fasta
+cp uniref100_PANDA_Hadoop.fasta /usr/local/projects/PANDA/PANDA_uniref/all/
+
+
+-- Split by Kingdom
+grep -A 1 "@@@Archaea" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Archaea//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea.fasta  &
+grep -A 1 "@@@Bacteria" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Bacteria//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria.fasta  &
+grep -A 1 "@@@Eukaryota" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Eukaryota//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota.fasta  &
+grep -A 1 "@@@Viruses" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@Viruses//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses.fasta  &
+grep -A 1 "@@@noKingdom" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@noKingdom//' > /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom.fasta  &
+grep -A 1 "@@@unclassifiedsequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@unclassifiedsequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
+grep -A 1 "@@@unclassified" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@unclassified//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
+grep -A 1 "@@@othersequences" uniref100_PANDA_Hadoop.fasta | sed -e 's/@@@othersequences//' >> /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta  &
+
+
+-- Cleanup the Kingdom identifiers
+sed -e 's/@@@[A-Za-z]*//' /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA_Hadoop.fasta > /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA.fasta
+
+-- Format DB
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Archaea/uniref100_PANDA_Archaea.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Bacteria/uniref100_PANDA_Bacteria.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Eukaryota/uniref100_PANDA_Eukaryota.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/Viruses/uniref100_PANDA_Viruses.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/noKingdom/uniref100_PANDA_noKingdom.fasta -o T
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified formatdb -i /usr/local/projects/PANDA/PANDA_uniref/split_by_kingdom/unclassified/uniref100_PANDA_unclassified.fasta -o T
+
+qsub -P 08020 -wd /usr/local/projects/PANDA/PANDA_uniref/all formatdb -i /usr/local/projects/PANDA/PANDA_uniref/all/uniref100_PANDA_Hadoop.fasta -o T

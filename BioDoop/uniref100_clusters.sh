@@ -1,0 +1,2 @@
+#!/bin/bash
+/opt/hadoop/bin/hadoop jar /opt/hadoop/contrib/streaming/hadoop-0.20.2-streaming.jar -input /user/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons -output /user/kkrampis/uniref2panda/uniref100_cluster_proteins_taxons_output_2  -file /home/kkrampis/devel/BioDoop/uniref100_clusters_map.rb  -mapper /home/kkrampis/devel/BioDoop/uniref100_clusters_map.rb -file /home/kkrampis/devel/BioDoop/uniref100_clusters_reduce.rb -reducer /home/kkrampis/devel/BioDoop/uniref100_clusters_reduce.rb 
